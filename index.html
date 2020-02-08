@@ -63,19 +63,11 @@
                 <span class="nav-text">首页</span>
             </a>
         
-            <a class="nav-item" href="/categories/front-end">
-                <span class="nav-text">前端</span>
-            </a>
-        
-            <a class="nav-item" href="/categories/back-end">
-                <span class="nav-text">后端</span>
-            </a>
-        
-            <a class="nav-item active" href="/">
+            <a class="nav-item" href="/categories/C++">
                 <span class="nav-text">C++</span>
             </a>
         
-            <a class="nav-item active" href="/">
+            <a class="nav-item" href="/Java">
                 <span class="nav-text">Java</span>
             </a>
         
@@ -85,10 +77,6 @@
         
             <a class="nav-item" href="/archives">
                 <span class="nav-text">归档</span>
-            </a>
-        
-            <a class="nav-item" href="/atom.xml">
-                <span class="nav-text">订阅</span>
             </a>
         
             <a class="nav-item" href="/about">
@@ -160,14 +148,14 @@
 </header>
 
         <div id="content" class="content">
-            <div id="wrapper" class="wrapper" style="max-width: 800px">
+            <div id="wrapper" class="wrapper" style="max-width: 5000px">
                 
     <article class="article" itemscope itemprop="blogPost">
     
     <header class="article-header">
         
         <h1 itemprop="name">
-            <a href="/2020/02/02/const%E4%BF%AE%E9%A5%B0%E7%AC%A6/">const修饰符</a>
+            <a href="/2020/02/08/const%E4%BF%AE%E9%A5%B0%E7%AC%A6/">const修饰符</a>
         </h1>
         
         <div class="article-meta clearfix">
@@ -175,10 +163,15 @@
     
     <i class="icon-calendar"></i>
     
-    <time datetime="2020-02-02T09:40:13.809Z" itemprop="datePublished">2020-02-02</time>
+    <time datetime="2020-02-08T14:27:48.881Z" itemprop="datePublished">2020-02-08</time>
 </a>
 
             
+<div class="article-tag-list">
+    <i class="icon-tag"></i>
+    <a class="article-tag-link" href="/tags/C/" rel="tag">C++</a>
+</div>
+
 
         </div>
     </header>
@@ -188,33 +181,14 @@
         <blockquote>
 <p>const就是不变的意思，就是说我们创建的对象加const修饰必须要求初始化，并且初始化一旦完成就是不可修改的。</p>
 </blockquote>
-<h1 id="顶层和底层const"><a href="#顶层和底层const" class="headerlink" title="顶层和底层const"></a>顶层和底层const</h1><p>const分为顶层和底层，顶层const指对象本身就是一个常量，底层const指对象(指针、引用等)指向的是一个常量。<br>由此观之，<strong>对象本身是不是常量</strong>和<strong>对象指向的是不是常量</strong>是两个相互独立的问题，当这个问题与指针相结合的时候就出现了我们熟知的<strong>指针常量</strong>和<strong>常量指针</strong>。</p>
-<h2 id="指针常量"><a href="#指针常量" class="headerlink" title="指针常量"></a>指针常量</h2><p>落点在常量上，这说明了指针常量是一个常量，类型是指针类型。<br>如果写int const  a = 5那么a就是一个整型常量(尽管我们一般不是这么描述),所以指针常量应该如下定义,</p>
-<pre><code>int *const p = &amp;num; </code></pre><p>从右向左看,离p最近的是const,首先说明了p是一个常量。在这里，const是一个<strong>顶层const</strong>因为它本身是一个常量，我们初始化的时候将p指向num，完成了初始化，<br>所以常量p不能在指向其他的变量(或是常量),也就是说们再写p = &ampnum2;;编译是不会通过的。</p>
-<h2 id="常量指针"><a href="#常量指针" class="headerlink" title="常量指针"></a>常量指针</h2><p>落点是指针，说明常量指针是一个<strong>指针</strong>,不同的是它指向的是一个<strong>常量</strong>。</p>
-<pre><code>const int a = 5;
-const int * p = &amp;a;</code></pre><p>从右向左看首先是一个*(指针的标志)，首先说明p是一个指针，再向左看，是一个指向常量的指针,所以p指向的是一个常量我们就不能更改*p的值,但是p本身不是一个常量所以我们可以改变p<br>指向的变量。</p>
-<pre><code>int const *p = &amp;a;</code></pre><p>需要注意的是这还是一个常量指针，从右向左看与上面的结果是一致的。<br>#引用和常量</p>
-<ol>
-<li><p>引用的类型必须与其所引用的对象类型一致。<br>例外:</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">#include &lt;iostream&gt;</span><br><span class="line">int main()</span><br><span class="line">&#123;</span><br><span class="line">    double a &#x3D; 3.14;</span><br><span class="line">    const int &amp;b &#x3D; a;</span><br><span class="line">    std::cout &lt;&lt; b &lt;&lt; std::endl;</span><br><span class="line">    &#x2F;* int &amp;c &#x3D; a;&#x2F;&#x2F;不允许 *&#x2F;</span><br><span class="line">    return 0;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-<p>原因:因为帮顶到常量整型引用上其实际是这样的,</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">const int temp &#x3D; a;</span><br><span class="line">const int &amp;b &#x3D; temp;</span><br></pre></td></tr></table></figure>
-<p>b绑定的是一个临时量。<br>如果绑定的不是一个常量，就说明程序员想通过改变b的值来改变a的值，但是b绑定的是一个临时量，所以这种行为是非法的。</p>
-</li>
-<li><p>常量引用绑定的对象可能不是常量。</p>
-<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">int x &#x3D; 666;</span><br><span class="line">int &amp;y &#x3D; x;</span><br><span class="line">cont int &amp;z &#x3D; x;</span><br><span class="line">y &#x3D; 888;</span><br></pre></td></tr></table></figure>
-<h1 id="注意事项"><a href="#注意事项" class="headerlink" title="注意事项"></a>注意事项</h1></li>
-<li><p>默认状态下,const对象仅在文件内有效，如果想在多个文件之间共享const对象，必须在变量定义之前添加extern关键字。</p>
-<pre><code>//1.cc文件  
-extern const int SIZE = 1024;//声明并定义MAXSIZE
-
-//1.h文件使用同一个
-SIZE extern const int SIZE;</code></pre></li>
-<li><p>顶层const在拷贝时候没有差异，但是底层const在拷贝时候两者必须要包含相同的底层const定义。一般来说非常量可以转换成常量，反之不可。</p>
-</li>
-</ol>
-
+        
+        <p class="article-more-link">
+            <a href="/2020/02/08/const%E4%BF%AE%E9%A5%B0%E7%AC%A6/#more">
+                <span class="vm">阅读更多</span>
+                <i class="icon-arrow-double-right vm"></i>    
+            </a>
+        </p>
+        
         
     </section>
 </article>
