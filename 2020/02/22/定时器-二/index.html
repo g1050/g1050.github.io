@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+
+    
+
+    
+
+    <title>定时器(二) | 高星坤的博客</title>
+    <meta name="author" content="gxk" />
+    <meta name="keywords" content="" />
+    <meta name="description" content="这一节介绍时间轮定时器，该结构解决了先前有序链表添加定时器效率低的问题，采用数组形式来模拟轮子，一个轮子有N个槽，类似于钟表，每隔1秒秒针走一格。时间轮有一个心搏函数tick,每隔SI秒后向前走一个槽，到达数组结尾后取模回到开头。数据结构分析1.用户数据(client_data):定时器类有一个指针成员指向该结构，client_data主要包含了已连接客户端的一些基本信息，套接字描述符、缓冲区等等。2.定时器(tw_timer):定时器好比链表的一个个节点，定时器含有next和pr..." />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
+
+    
+    <link rel="alternate" href="/atom.xml" title="高星坤的博客" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/images/1.ico">
+    
+
+    <style type="text/css">
+    @font-face {
+        font-family: 'icomoon';
+        src: url("/fonts/icomoon.eot?q628ml");
+        src: url("/fonts/icomoon.eot?q628ml#iefix") format('embedded-opentype'),
+             url("/fonts/icomoon.ttf?q628ml") format('truetype'),
+             url("/fonts/icomoon.woff?q628ml") format('woff'),
+             url("/fonts/icomoon.svg?q628ml#icomoon") format('svg');
+        font-weight: normal;
+        font-style: normal;
+    }
+    </style>
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    <!--[if lt IE 9]>
+    <style type="text/css">
+    .nav-inner {top:0;}
+    .author-meta {position:static;top:0;}
+    .search-form {height:36px;}
+    </style>
+    <script type="text/javascript" src="https://unpkg.com/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+    <![endif]-->
+<meta name="generator" content="Hexo 4.2.0"></head>
+<body>
+
+    <main class="app">
+        <header id="header" class="header clearfix">
+    <div id="nav" class="nav">
+    <div class="nav-mobile">
+        <button id="open-panel" class="open-panel nav-mobile-item"><i class="icon-documents"></i></button>
+        <h1 class="nav-mobile-title nav-mobile-item">高星坤的博客</h1>
+        <button id="open-menus" class="open-panel nav-mobile-item"><i class="icon-library"></i></button>
+    </div>
+
+    <nav id="nav-inner" class="nav-inner">
+        
+            <a class="nav-item" href="/">
+                <span class="nav-text">首页</span>
+            </a>
+        
+            <a class="nav-item" href="/categories">
+                <span class="nav-text">分类</span>
+            </a>
+        
+            <a class="nav-item" href="/tags">
+                <span class="nav-text">标签</span>
+            </a>
+        
+            <a class="nav-item" href="/archives">
+                <span class="nav-text">归档</span>
+            </a>
+        
+            <a class="nav-item" href="/about">
+                <span class="nav-text">关于</span>
+            </a>
+        
+    </nav>
+</div>
+
+    <aside id="aside" class="aside">
+    <div id="aside-mask" class="aside-mask"></div>
+    <div id="aside-inner" class="aside-inner">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit"><i class="icon-search-stroke"></i></button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+
+        
+        
+        
+        
+
+        
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#数据结构分析"><span class="toc-number">1.</span> <span class="toc-text">数据结构分析</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#心搏函数"><span class="toc-number">2.</span> <span class="toc-text">心搏函数</span></a></li></ol>
+        
+    </div>
+</aside>
+
+</header>
+
+        <div id="content" class="content">
+            <div id="wrapper" class="wrapper" style="max-width: 5000px">
+                <article class="article" itemscope itemprop="blogPost">
+    
+    <header class="article-header">
+        
+        <h1 itemprop="name">
+            定时器(二)
+        </h1>
+        
+        <div class="article-meta clearfix">
+            <a class="article-date" href="http://yoursite.com/2020/02/22/%E5%AE%9A%E6%97%B6%E5%99%A8-%E4%BA%8C/index.html">
+    
+    <i class="icon-calendar"></i>
+    
+    <time datetime="2020-02-22T03:44:00.000Z" itemprop="datePublished">2020-02-22</time>
+</a>
+
+            
+<div class="article-tag-list">
+    <i class="icon-tag"></i>
+    <a class="article-tag-link" href="/tags/%E5%AE%9A%E6%97%B6%E5%99%A8/" rel="tag">定时器</a>
+</div>
+
+
+        </div>
+    </header>
+    
+    <section class="article-body markdown-body">
+        
+        <blockquote>
+<p>这一节介绍时间轮定时器，该结构解决了先前有序链表添加定时器效率低的问题，采用数组形式来模拟轮子，一个轮子有N个槽，类似于钟表，每隔1秒秒针走一格。时间轮有一个心搏函数tick,每隔SI秒后向前走一个槽，到达数组结尾后取模回到开头。</p>
+</blockquote>
+<a id="more"></a>
+<h1 id="数据结构分析"><a href="#数据结构分析" class="headerlink" title="数据结构分析"></a>数据结构分析</h1><p><img src="/images/pasted-4.png" alt="upload successful"><br>1.用户数据(client_data):定时器类有一个指针成员指向该结构，client_data主要包含了已连接客户端的一些基本信息，套接字描述符、缓冲区等等。<br>2.定时器(tw_timer):定时器好比链表的一个个节点，定时器含有next和prev成员，通过定时器可以将用户数据串在一起,值得注意的是该数据结构有两个成员rotation和time_slot,分别表示定时器多少圈后生效和当前定时器位于哪个槽。<br>&nbsp;&nbsp;&nbsp;&nbsp;举个例子,比如假设有一个有一个5个槽的时间轮，当前指针指向第3个槽。当插入一个定时时间为11秒的定时器的时候，考虑该插入哪个槽中？时间轮一圈是5秒，所以至少需要转2圈(11/2),rotation就等于2。两圈后回到3位置，过了10秒,11秒应该放入下一个槽，所以位置是4{(3+11%5)%5}。以后在到对应槽位置的时候只要判断if(rotation == 0),如果是0，说明定时器到时，否则roation–。<br>3.时间轮(time_wheel):它管理定时器的轮子，包含了时间了轮的基本信息N(总槽数)、SI(相邻两格之间的时间间隔),slots<a href="数组">[N]</a>用来模拟轮子</p>
+<h1 id="心搏函数"><a href="#心搏函数" class="headerlink" title="心搏函数"></a>心搏函数</h1><p><img src="/images/pasted-6.png" alt="upload successful"><br>心搏函数:每隔一段时间就触发一次，检查是否有定时器到时。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line">void tick()&#123;</span><br><span class="line">    &#x2F;* 获得时间轮上当前槽的头结点 *&#x2F;</span><br><span class="line">    tw_timer* tmp &#x3D; slots[cur_slot];</span><br><span class="line">    std::cout &lt;&lt; &quot;current slot is &quot; &lt;&lt; cur_slot &lt;&lt; std::endl;</span><br><span class="line">    while(tmp)&#123;</span><br><span class="line">        std::cout &lt;&lt; &quot;tick the timer once &quot; &lt;&lt; std::endl;</span><br><span class="line">        &#x2F;* 轮数大于0，说明这轮没有超时 *&#x2F;</span><br><span class="line">        if(tmp-&gt;rotation &gt; 0)&#123;</span><br><span class="line">            tmp-&gt;rotation--;</span><br><span class="line">            tmp &#x3D; tmp-&gt;next;&#x2F;&#x2F;判断下一个节点</span><br><span class="line">        &#125;else&#123;</span><br><span class="line">            tmp-&gt;cb_func(tmp-&gt;user_data);</span><br><span class="line">            if(tmp &#x3D;&#x3D; slots[cur_slot])&#123;&#x2F;&#x2F;头结点到时候</span><br><span class="line">                std::cout &lt;&lt; &quot;delete header in cur_slot\n&quot; &lt;&lt; std::endl;</span><br><span class="line">                slots[cur_slot] &#x3D; tmp-&gt;next;</span><br><span class="line">                delete tmp;</span><br><span class="line">                if(slots[cur_slot])&#123;</span><br><span class="line">                    slots[cur_slot]-&gt;prev &#x3D; NULL;</span><br><span class="line">                &#125;</span><br><span class="line">                tmp &#x3D; slots[cur_slot];</span><br><span class="line">            &#125;else&#123;</span><br><span class="line">                tmp-&gt;prev-&gt;next &#x3D; tmp-&gt;next;</span><br><span class="line">                if(tmp-&gt;next)&#123;</span><br><span class="line">                    tmp-&gt;next-&gt;prev &#x3D; tmp-&gt;prev;</span><br><span class="line">                &#125;</span><br><span class="line">                tw_timer* tmp2 &#x3D; tmp-&gt;prev;</span><br><span class="line">                delete tmp;</span><br><span class="line">                tmp &#x3D; tmp2;&#x2F;&#x2F;向后转移</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        &#x2F;* 时间轮转动 *&#x2F;</span><br><span class="line">        cur_slot &#x3D; ++cur_slot%N;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+        
+    </section>
+</article>
+
+
+
+<a id="pagenext" href="/2020/02/20/%E5%AE%9A%E6%97%B6%E5%99%A8/" class="article-next" title="定时器(一)"><i class="icon-arrow-right"></i></a>
+
+
+
+
+<div class="comments">
+    <div id="comments"></div>
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+    new Gitalk({
+        clientID: `25e6aa8b4eb43e15a16f`,
+        clientSecret: 'e76d189867d41b973dfe88f9da655255e439eeb0',
+        repo: `BlogComments`,
+        owner: `g1050`,
+        admin: [`g1050`],
+        id: location.pathname,
+    }).render('comments');
+    </script>
+</div>
+
+
+
+            </div>
+        </div>
+        <footer class="footer">
+    Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>, Theme by <a href="https://github.com/sanonz/hexo-theme-concise" target="_blank">Concise</a>
+
+    
+    <script>
+        var _hmt = _hmt || [];
+        (function () {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?d37ac32f83de545ec697f5b49514e9d5";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+    
+</footer>
+
+    </main>
+
+    <script type="text/javascript" src="https://cdn.bootcss.com/jquery/1.9.0/jquery.min.js"></script>
+    <script type="text/javascript">
+    $(function() {
+        var nodes = {
+            nav: $('#nav'),
+            aside: $('#aside'),
+            asideInner: $('#aside-inner'),
+            navInner: $('#nav-inner')
+        };
+
+        var doing = false;
+        nodes.asideInner.on('webkitAnimationEnd mozAnimationEnd oAnimationEnd oanimationend animationend', function() {
+            if (nodes.aside.hasClass('mobile-open')) {
+                nodes.aside.removeClass('mobile-open');
+            } else {
+                nodes.aside.removeClass('mobile-close panel-show');
+            }
+            doing = false;
+        });
+        $('#open-panel, #aside-mask').on('click', function() {
+            if (doing) {
+                return;
+            }
+
+            if (nodes.aside.hasClass('panel-show')) {
+                nodes.aside.addClass('mobile-close');
+            } else {
+                nodes.aside.addClass('mobile-open panel-show');
+            }
+        });
+        $('#open-menus').on('click', function() {
+            nodes.navInner.slideToggle();
+        });
+
+        if (window.innerWidth <= 960) {
+            setTimeout(function() {
+                nodes.navInner.slideUp();
+            }, 3000);
+        }
+    });
+    </script>
+    
+        
+<script src="/js/scrollspy.min.js"></script>
+
+        <script type="text/javascript">
+        $(document.body).scrollspy({target: '#aside-inner'});
+
+        $(window).on('resize', function() {
+            var hw = $('#header').width();
+            var ww = $('#wrapper').width();
+            var space = ($(this).width() - hw - ww) / 2 / 2;
+
+            var pageprev = $('#pageprev');
+            var pagenext = $('#pagenext');
+            var avg = (pageprev.width() + pagenext.width()) / 2
+
+            if(space > avg) {
+                var len = space - avg / 2;
+                var styles = {position: 'fixed', top: '50%', marginTop: - (pageprev.width() + pagenext.width()) / 4}
+                pageprev.css($.extend({left: hw + len}, styles));
+                pagenext.css($.extend({right: len}, styles));
+            } else {
+                pageprev.removeAttr('style');
+                pagenext.removeAttr('style');
+            }
+        }).trigger('resize');
+        </script>
+    
+
+</body>
+</html>
