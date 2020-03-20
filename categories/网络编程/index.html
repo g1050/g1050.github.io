@@ -151,6 +151,94 @@
     <header class="article-header">
         
         <h1 itemprop="name">
+            <a href="/2020/03/20/muduo-chp02-Singleton%E6%A8%A1%E5%BC%8F/">muduo_chp02_Singleton模式</a>
+        </h1>
+        
+        <div class="article-meta clearfix">
+            <a class="article-date" href="http://yoursite.com/categories/%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/index.html">
+    
+    <i class="icon-calendar"></i>
+    
+    <time datetime="2020-03-20T03:32:00.000Z" itemprop="datePublished">2020-03-20</time>
+</a>
+
+            
+<div class="article-tag-list">
+    <i class="icon-tag"></i>
+    <a class="article-tag-link" href="/tags/muduo/" rel="tag">muduo</a>, <a class="article-tag-link" href="/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" rel="tag">设计模式</a>
+</div>
+
+
+        </div>
+    </header>
+    
+    <section class="article-body markdown-body">
+        
+        <a id="more"></a>
+<h1 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h1><p>　　还是做数据结构课设时候的一件事，当时需要连接sql lite数据库,有一个类是用来连接和管理数据库的，但是当时遇到一个问题，同一数据库多次关闭，后来凑凑合合解决了这个问题。现在回看这个问题，我的需求就是对于数据库这个类应该仅有一个实例，作为开发者应该保证的，显而易见这就是单例模式了，现在接触到了单例模式。</p>
+<h1 id="各种版本单例模式"><a href="#各种版本单例模式" class="headerlink" title="各种版本单例模式"></a>各种版本单例模式</h1><h2 id="线程非安全版本"><a href="#线程非安全版本" class="headerlink" title="线程非安全版本"></a>线程非安全版本</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">Singleton Singleton::instance()&#123;</span><br><span class="line">	if(instance_ &#x3D;&#x3D; nullptr)&#123;</span><br><span class="line">    	instance_ &#x3D; new Singleton();</span><br><span class="line">        return instance_;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>很明显，这个类不是线程安全的,两个线程同时执行到<code>if(instace_ == nullptr)</code>的时候就会出现问题,如果A线程已经有了一个实例的话，B线程还是会重新开辟一个新的实例。这种单例模式在单线程中是可以的。</p>
+<h2 id="线程安全版本"><a href="#线程安全版本" class="headerlink" title="线程安全版本"></a>线程安全版本</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">Singleton Singleton::instance()&#123;</span><br><span class="line">	MutexLockGuard lock(mutex_);</span><br><span class="line">    if(instance_ &#x3D;&#x3D; nullptr)&#123;</span><br><span class="line">    	instance_ &#x3D; new Singleton();</span><br><span class="line">        return instance_;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>既然多线程存在问题，可以考虑使用同步原语来保护临界区，采用Mutex,可以保护临界区，避免version 1出现的问题。但是仔细考虑一下,这个版本虽然线程安全，但是代价是不是太高了，在高并发的情况下，每一个连接可能都要尝试获得一个实例，但是因为锁的保护，它们不得不等待，所以需要继续优化。</p>
+<h2 id="DCL-double-check-locking-版本"><a href="#DCL-double-check-locking-版本" class="headerlink" title="DCL(double check locking)版本"></a>DCL(double check locking)版本</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">Singleton Singleton::instance()&#123;</span><br><span class="line">	if(instance_ &#x3D;&#x3D; nullptr)&#123;</span><br><span class="line">      MutexLockGuard lock(mutex_);</span><br><span class="line">      if(instance_ &#x3D;&#x3D; nullptr)&#123;</span><br><span class="line">          instance_ &#x3D; new Singleton();</span><br><span class="line">          return instance_;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">	</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>DCL想法很巧妙，就是在加锁前判断一下<code>if(instance_ == null)</code>,很长一段时间大家都认为DCL没有问题，后来科学家发现DCL存在很大问题，因为乱序执行(reorder)的影响DCL是靠不住的。通俗点来说就是,计算机指令有时候不会按照我们想象的执行。一般情况下，应该是先调用构造函数再给instace_赋值，但是有例外的情况下会先开辟内存给instace_赋值，然后在调用构造函数。所以问题已经暴露出来了，A线程instace_赋值完后是没有完成构造的,这时B线程得到的是一个未完成构造的实例。</p>
+<h2 id="volatile和pthread-once版本"><a href="#volatile和pthread-once版本" class="headerlink" title="volatile和pthread_once版本"></a>volatile和pthread_once版本</h2><p>为了解决DCL问题,Java、C#引入了volatile关键字,但是C++还不能保证所有版本都支持DCL正确性,所以可以用pthread_once来实现一个比较完美的单例模式。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;&#x2F; Use of this source code is governed by a BSD-style license</span><br><span class="line">&#x2F;&#x2F; that can be found in the License file.</span><br><span class="line">&#x2F;&#x2F;</span><br><span class="line">&#x2F;&#x2F; Author: Shuo Chen (chenshuo at chenshuo dot com)</span><br><span class="line"></span><br><span class="line">#ifndef MUDUO_BASE_SINGLETON_H</span><br><span class="line">#define MUDUO_BASE_SINGLETON_H</span><br><span class="line"></span><br><span class="line">#include &lt;boost&#x2F;noncopyable.hpp&gt;</span><br><span class="line">#include &lt;pthread.h&gt;</span><br><span class="line">#include &lt;stdlib.h&gt; &#x2F;&#x2F; atexit</span><br><span class="line"></span><br><span class="line">namespace muduo</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">template&lt;typename T&gt;</span><br><span class="line">class Singleton : boost::noncopyable</span><br><span class="line">&#123;</span><br><span class="line"> public:</span><br><span class="line">  &#x2F;* 使用很简单,Foo&amp; foo &#x3D; Singleton&lt;Foo&gt;::instance(); *&#x2F;</span><br><span class="line">  static T&amp; instance()</span><br><span class="line">  &#123;</span><br><span class="line">    pthread_once(&amp;ponce_, &amp;Singleton::init);&#x2F;&#x2F;它自动调用init函数</span><br><span class="line">    return *value_;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"> private:</span><br><span class="line">  Singleton();&#x2F;&#x2F;构造函数外部用不到，用的是静态成员函数instance,私有构造函数</span><br><span class="line">  ~Singleton();</span><br><span class="line"></span><br><span class="line">  static void init()</span><br><span class="line">  &#123;</span><br><span class="line">    value_ &#x3D; new T();</span><br><span class="line">    ::atexit(destroy);&#x2F;&#x2F;登记终止处理函数</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line">  static void destroy()</span><br><span class="line">  &#123;</span><br><span class="line">    &#x2F;&#x2F;迷之操作</span><br><span class="line">    typedef char T_must_be_complete_type[sizeof(T) &#x3D;&#x3D; 0 ? -1 : 1];</span><br><span class="line">    T_must_be_complete_type dummy; (void) dummy;</span><br><span class="line"></span><br><span class="line">    delete value_;</span><br><span class="line">  &#125;</span><br><span class="line"></span><br><span class="line"> private:</span><br><span class="line">  static pthread_once_t ponce_;</span><br><span class="line">  static T*             value_;&#x2F;&#x2F;T类型的静态指针</span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">&#x2F;* 静态成员变量初始化 *&#x2F;</span><br><span class="line">template&lt;typename T&gt;</span><br><span class="line">pthread_once_t Singleton&lt;T&gt;::ponce_ &#x3D; PTHREAD_ONCE_INIT;</span><br><span class="line"></span><br><span class="line">template&lt;typename T&gt;</span><br><span class="line">T* Singleton&lt;T&gt;::value_ &#x3D; NULL;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line">#endif</span><br></pre></td></tr></table></figure>
+<p><strong>里面用到两个函数，值得关注一下:</strong><br><strong>1.pthread_once函数 确保进程只执行一次init_toutine函数</strong><br><code>int pthread_once(pthread_once_t* once_control, void (*init_routine)(void));</code></p>
+<p>pthread_once_t = PTHREAD_ONCE_INIT;//初始化once_control为0<br><strong>2.atexit函数 登记终止处理函数</strong><br><code>int atexit(void (*func)(void));</code><br>终止处理函数返回类型为void,且没有参数。<br>程序结束时候调用终止处理函数的顺序和注册的顺序是相反的。</p>
+
+        
+    </section>
+</article>
+
+
+    <article class="article" itemscope itemprop="blogPost">
+    
+    <header class="article-header">
+        
+        <h1 itemprop="name">
+            <a href="/2020/03/19/muduo-chp01-observer%E6%A8%A1%E5%BC%8F/">muduo_chp01_Observer模式</a>
+        </h1>
+        
+        <div class="article-meta clearfix">
+            <a class="article-date" href="http://yoursite.com/categories/%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B/index.html">
+    
+    <i class="icon-calendar"></i>
+    
+    <time datetime="2020-03-19T03:26:00.000Z" itemprop="datePublished">2020-03-19</time>
+</a>
+
+            
+<div class="article-tag-list">
+    <i class="icon-tag"></i>
+    <a class="article-tag-link" href="/tags/muduo/" rel="tag">muduo</a>, <a class="article-tag-link" href="/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/" rel="tag">设计模式</a>
+</div>
+
+
+        </div>
+    </header>
+    
+    <section class="article-body markdown-body">
+        
+        <a id="more"></a>
+<h2 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h2><p>1.我在数据结构用Qt写压缩软件的时候就有了一个问题，压缩过程中压缩类需要通知ProgressBar来更新显示进度,当时就解决不了这个问题了,现在看来就是需要Observer模式。<br>其实可以如下处理，让QProgressBar继承Observer类，成为观察者，这样后期拓展也比较容易，方便添加其他观察者。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">class Hufman&#123;</span><br><span class="line">public:</span><br><span class="line">    void addObserver(Observer *observer);</span><br><span class="line">    void delObserver(Observer *observer);</span><br><span class="line">    void notifyObserver();&#x2F;&#x2F;traverse vector</span><br><span class="line">private:</span><br><span class="line">    vector&lt;Observer *&gt; observers_; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>2.Observer模式就是这样，目标状态改变的时候需要通知所有订阅的Observer,二者改变需要相互独立，以达到一个松耦合关系，Observer在UI框架中是常用的。</p>
+<h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>Observer模式基本就是上述例子那样,但是通过muduo学习到了，该模式其实还要很多值得注意的地方，先放一段<strong><a href="https://github.com/g1050/recipes/blob/master/thread/test/Observer.cc" target="_blank" rel="noopener">源码</a></strong>,仔细观察可以发现它存在两个问题。</p>
+<h3 id="问题1-LINE47-析构时subject是否还存活"><a href="#问题1-LINE47-析构时subject是否还存活" class="headerlink" title="问题1:(LINE47) 析构时subject是否还存活"></a>问题1:(LINE47) 析构时subject是否还存活</h3><p>如果Observerable先于Observer析构，而Observer析构时候右需要Observerable调用unregister方法,所以存在安全隐患。<br><strong>解决办法:</strong>借助shared_ptr/weak_ptr我们可以避免unregister函数，意思是说，只要Observer对象存在我们就可以通知它，如果它析构了，那么就从订阅的观察者里面剔除它。<a href="https://github.com/g1050/recipes/blob/master/thread/test/Observer_safe.cc" target="_blank" rel="noopener">源码</a></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line">void notifyObservers()</span><br><span class="line">&#123;</span><br><span class="line">  muduo::MutexLockGuard lock(mutex_);&#x2F;&#x2F;加锁，解决问题2</span><br><span class="line">  Iterator it &#x3D; observers_.begin();</span><br><span class="line">  while (it !&#x3D; observers_.end())</span><br><span class="line">  &#123;</span><br><span class="line">    boost::shared_ptr&lt;Observer&gt; obj(it-&gt;lock());</span><br><span class="line">    if (obj)</span><br><span class="line">    &#123;</span><br><span class="line">      obj-&gt;update();</span><br><span class="line">      ++it;</span><br><span class="line">    &#125;</span><br><span class="line">    else</span><br><span class="line">    &#123;</span><br><span class="line">      printf(&quot;notifyObservers() erase\n&quot;);</span><br><span class="line">      it &#x3D; observers_.erase(it);&#x2F;&#x2F;从vector中删除当前观察者,观察者已经析构</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h3 id="问题2-LINE32-notify正在析构的对象"><a href="#问题2-LINE32-notify正在析构的对象" class="headerlink" title="问题2:(LINE32)notify正在析构的对象"></a>问题2:(LINE32)notify正在析构的对象</h3><p><strong>解决办法:</strong>实际上问题一中的解决方案已经解决了这个问题,因为vector中存放的是weak_ptr,所以在update之前,可以先尝试将它提升为shared_ptr,如果不能的话就从vector中将它删除。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">boost::shared_ptr&lt;Observer&gt; obj(it-&gt;lock());</span><br><span class="line">      if (obj)</span><br><span class="line">      &#123;</span><br><span class="line">        obj-&gt;update();</span><br><span class="line">        ++it;</span><br><span class="line">      &#125;</span><br><span class="line">      else</span><br><span class="line">      &#123;</span><br><span class="line">        printf(&quot;notifyObservers() erase\n&quot;);</span><br><span class="line">        it &#x3D; observers_.erase(it);&#x2F;&#x2F;从vector中删除当前观察者,观察者已经析构</span><br><span class="line">      &#125;</span><br></pre></td></tr></table></figure>
+        
+    </section>
+</article>
+
+
+    <article class="article" itemscope itemprop="blogPost">
+    
+    <header class="article-header">
+        
+        <h1 itemprop="name">
             <a href="/2020/02/22/%E5%AE%9A%E6%97%B6%E5%99%A8-%E4%BA%8C/">定时器(二)</a>
         </h1>
         
