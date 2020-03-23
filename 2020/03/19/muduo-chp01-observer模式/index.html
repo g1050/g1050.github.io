@@ -10,7 +10,7 @@
     <title>muduo_chp01_Observer模式 | 高星坤的博客</title>
     <meta name="author" content="gxk" />
     <meta name="keywords" content="" />
-    <meta name="description" content="引言1.我在数据结构用Qt写压缩软件的时候就有了一个问题，压缩过程中压缩类需要通知ProgressBar来更新显示进度,当时就解决不了这个问题了,现在看来就是需要Observer模式。其实可以如下处理，让QProgressBar继承Observer类，成为观察者，这样后期拓展也比较容易，方便添加其他观察者。12345678class Hufman&amp;#123;public:    void addObserver(Observer *observer);    void delObs..." />
+    <meta name="description" content="引言1.我在数据结构用Qt写压缩软件的时候就有了一个问题，压缩过程中压缩类需要通知ProgressBar来更新显示进度,当时就解决不了这个问题了,现在看来就是需要Observer模式。其实可以如下处理，让QProgressBar继承Observer类，成为观察者，这样后期拓展也比较容易，方便添加其他观察者。12345678class Hufman&amp;#123;public:    void addObserver(Observer *observer);    void delObse..." />
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
     <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
 
@@ -130,10 +130,9 @@
     
     <section class="article-body markdown-body">
         
-        <a id="more"></a>
+        <hr>
+<a id="more"></a>
 <h2 id="引言"><a href="#引言" class="headerlink" title="引言"></a>引言</h2><p>1.我在数据结构用Qt写压缩软件的时候就有了一个问题，压缩过程中压缩类需要通知ProgressBar来更新显示进度,当时就解决不了这个问题了,现在看来就是需要Observer模式。<br>其实可以如下处理，让QProgressBar继承Observer类，成为观察者，这样后期拓展也比较容易，方便添加其他观察者。</p>
-<!--more-->
-
 <figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">class Hufman&#123;</span><br><span class="line">public:</span><br><span class="line">    void addObserver(Observer *observer);</span><br><span class="line">    void delObserver(Observer *observer);</span><br><span class="line">    void notifyObserver();&#x2F;&#x2F;traverse vector</span><br><span class="line">private:</span><br><span class="line">    vector&lt;Observer *&gt; observers_; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 <p>2.Observer模式就是这样，目标状态改变的时候需要通知所有订阅的Observer,二者改变需要相互独立，以达到一个松耦合关系，Observer在UI框架中是常用的。</p>
 <h2 id="问题"><a href="#问题" class="headerlink" title="问题"></a>问题</h2><p>Observer模式基本就是上述例子那样,但是通过muduo学习到了，该模式其实还要很多值得注意的地方，先放一段<strong><a href="https://github.com/g1050/recipes/blob/master/thread/test/Observer.cc" target="_blank" rel="noopener">源码</a></strong>,仔细观察可以发现它存在两个问题。</p>

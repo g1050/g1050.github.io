@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+
+    
+
+    
+
+    <title>muduo_chp01_Object pool | 高星坤的博客</title>
+    <meta name="author" content="gxk" />
+    <meta name="keywords" content="" />
+    <meta name="description" content="简介　　对象池中包含若干提前准备好的若干实例，当需要时从对象池中提取，当不需要时，则重新放入对象池。一方面，使用对象池不需要频繁的产生和销毁实例对象，另一方面，对象池中的实例如果不够程序调用才会继续产生实例，这大大节省了性能。例如，FPS游戏中的敌人、子弹等都可以使用对象池。　　下文主要记录一下muduo中的StockFactory例子和自己的一些理解。1234567891011121314151617181920&amp;#x2F;&amp;#x2F;股票类定义class Stock : boos..." />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
+
+    
+    <link rel="alternate" href="/atom.xml" title="高星坤的博客" type="application/atom+xml">
+    
+    
+    <link rel="icon" href="/images/1.ico">
+    
+
+    <style type="text/css">
+    @font-face {
+        font-family: 'icomoon';
+        src: url("/fonts/icomoon.eot?q628ml");
+        src: url("/fonts/icomoon.eot?q628ml#iefix") format('embedded-opentype'),
+             url("/fonts/icomoon.ttf?q628ml") format('truetype'),
+             url("/fonts/icomoon.woff?q628ml") format('woff'),
+             url("/fonts/icomoon.svg?q628ml#icomoon") format('svg');
+        font-weight: normal;
+        font-style: normal;
+    }
+    </style>
+    
+<link rel="stylesheet" href="/css/style.css">
+
+
+    <!--[if lt IE 9]>
+    <style type="text/css">
+    .nav-inner {top:0;}
+    .author-meta {position:static;top:0;}
+    .search-form {height:36px;}
+    </style>
+    <script type="text/javascript" src="https://unpkg.com/html5shiv@3.7.3/dist/html5shiv.min.js"></script>
+    <![endif]-->
+<meta name="generator" content="Hexo 4.2.0"></head>
+<body>
+
+    <main class="app">
+        <header id="header" class="header clearfix">
+    <div id="nav" class="nav">
+    <div class="nav-mobile">
+        <button id="open-panel" class="open-panel nav-mobile-item"><i class="icon-documents"></i></button>
+        <h1 class="nav-mobile-title nav-mobile-item">高星坤的博客</h1>
+        <button id="open-menus" class="open-panel nav-mobile-item"><i class="icon-library"></i></button>
+    </div>
+
+    <nav id="nav-inner" class="nav-inner">
+        
+            <a class="nav-item" href="/">
+                <span class="nav-text">首页</span>
+            </a>
+        
+            <a class="nav-item" href="/categories">
+                <span class="nav-text">分类</span>
+            </a>
+        
+            <a class="nav-item" href="/tags">
+                <span class="nav-text">标签</span>
+            </a>
+        
+            <a class="nav-item" href="/archives">
+                <span class="nav-text">归档</span>
+            </a>
+        
+            <a class="nav-item" href="/about">
+                <span class="nav-text">关于</span>
+            </a>
+        
+    </nav>
+</div>
+
+    <aside id="aside" class="aside">
+    <div id="aside-mask" class="aside-mask"></div>
+    <div id="aside-inner" class="aside-inner">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit"><i class="icon-search-stroke"></i></button><input type="hidden" name="sitesearch" value="http://yoursite.com"></form>
+
+        
+        
+        
+        
+
+        
+        <ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#简介"><span class="toc-number">1.</span> <span class="toc-text">简介</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#版本演变"><span class="toc-number">2.</span> <span class="toc-text">版本演变</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#version-1"><span class="toc-number">2.1.</span> <span class="toc-text">version 1</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#version-2"><span class="toc-number">2.2.</span> <span class="toc-text">version 2</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#version-3"><span class="toc-number">2.3.</span> <span class="toc-text">version 3</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#version-4"><span class="toc-number">2.4.</span> <span class="toc-text">version 4</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#version-5"><span class="toc-number">2.5.</span> <span class="toc-text">version 5</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#感想"><span class="toc-number">3.</span> <span class="toc-text">感想</span></a></li></ol>
+        
+    </div>
+</aside>
+
+</header>
+
+        <div id="content" class="content">
+            <div id="wrapper" class="wrapper" style="max-width: 5000px">
+                <article class="article" itemscope itemprop="blogPost">
+    
+    <header class="article-header">
+        
+        <h1 itemprop="name">
+            muduo_chp01_Object pool
+        </h1>
+        
+        <div class="article-meta clearfix">
+            <a class="article-date" href="http://yoursite.com/2020/03/22/muduo-chp01-Object-pool/index.html">
+    
+    <i class="icon-calendar"></i>
+    
+    <time datetime="2020-03-22T10:19:00.000Z" itemprop="datePublished">2020-03-22</time>
+</a>
+
+            
+<div class="article-tag-list">
+    <i class="icon-tag"></i>
+    <a class="article-tag-link" href="/tags/muduo/" rel="tag">muduo</a>
+</div>
+
+
+        </div>
+    </header>
+    
+    <section class="article-body markdown-body">
+        
+        <hr>
+<a id="more"></a>
+<h1 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h1><p>　　对象池中包含若干提前准备好的若干实例，当需要时从对象池中提取，当不需要时，则重新放入对象池。<br>一方面，使用对象池不需要频繁的产生和销毁实例对象，另一方面，对象池中的实例如果不够程序调用才会继续产生实例，这大大节省了性能。<br>例如，FPS游戏中的敌人、子弹等都可以使用对象池。<br>　　下文主要记录一下muduo中的StockFactory例子和自己的一些理解。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;&#x2F;股票类定义</span><br><span class="line">class Stock : boost::noncopyable</span><br><span class="line">&#123;</span><br><span class="line">public:</span><br><span class="line">    Stock(const string&amp; name)</span><br><span class="line">        : name_(name)</span><br><span class="line">    &#123;</span><br><span class="line">        printf(&quot; Stock[%p] %s\n&quot;, this, name_.c_str());&#x2F;&#x2F;打印地址和股票名字</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    ~Stock()</span><br><span class="line">    &#123;</span><br><span class="line">        printf(&quot;~Stock[%p] %s\n&quot;, this, name_.c_str());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    const string&amp; key() const &#123; return name_; &#125;</span><br><span class="line"></span><br><span class="line">private:</span><br><span class="line">    string name_;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<h1 id="版本演变"><a href="#版本演变" class="headerlink" title="版本演变"></a>版本演变</h1><h2 id="version-1"><a href="#version-1" class="headerlink" title="version 1"></a>version 1</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line">namespace version1</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">&#x2F;&#x2F; questionable code</span><br><span class="line">class StockFactory : boost::noncopyable</span><br><span class="line">    &#123;</span><br><span class="line">    public:</span><br><span class="line"></span><br><span class="line">        boost::shared_ptr&lt;Stock&gt; get(const string&amp; key)</span><br><span class="line">        &#123;</span><br><span class="line">            muduo::MutexLockGuard lock(mutex_);</span><br><span class="line">            boost::shared_ptr&lt;Stock&gt;&amp; pStock &#x3D; stocks_[key];</span><br><span class="line">            &#x2F;&#x2F;如果股票不存在会默认构造一个</span><br><span class="line">            if (!pStock)</span><br><span class="line">            &#123;</span><br><span class="line">                pStock.reset(new Stock(key));</span><br><span class="line">            &#125;</span><br><span class="line">            return pStock;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    private:</span><br><span class="line">        mutable muduo::MutexLock mutex_;</span><br><span class="line">        &#x2F;* 此处有问题,如果所有都用不到股票应该被析构 *&#x2F;</span><br><span class="line">        std::map&lt;string, boost::shared_ptr&lt;Stock&gt; &gt; stocks_;&#x2F;&#x2F;sp智能指针</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>测试:</p>
+<pre><code>version1::StockFactory sf1;
+{
+        boost::shared_ptr&lt;Stock&gt; s2 = sf2.get(&quot;stock2&quot;);
+}  </code></pre><p>这段代码是存在问题的，问题在于虽然考虑到内存释放问题利用了sp智能指针,但是由于map中存储的也是sp指针，这就会导致只要不从map中删除这个key,就一直存在sp指针指向Stock对象，Stock对象不会销毁!</p>
+<h2 id="version-2"><a href="#version-2" class="headerlink" title="version 2"></a>version 2</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br></pre></td><td class="code"><pre><span class="line">namespace version2</span><br><span class="line">&#123;</span><br><span class="line">&#x2F;* 轻微内存泄露,stocks_大小只增不减 *&#x2F;</span><br><span class="line">class StockFactory : boost::noncopyable</span><br><span class="line">    &#123;</span><br><span class="line">    public:</span><br><span class="line">        boost::shared_ptr&lt;Stock&gt; get(const string&amp; key)</span><br><span class="line">        &#123;</span><br><span class="line">            boost::shared_ptr&lt;Stock&gt; pStock;&#x2F;&#x2F;定义一个空的sp</span><br><span class="line">            muduo::MutexLockGuard lock(mutex_);</span><br><span class="line">            boost::weak_ptr&lt;Stock&gt;&amp; wkStock &#x3D; stocks_[key];</span><br><span class="line">            pStock &#x3D; wkStock.lock();</span><br><span class="line">            &#x2F;&#x2F;不存在就创建</span><br><span class="line">            if (!pStock)</span><br><span class="line">            &#123;</span><br><span class="line">                pStock.reset(new Stock(key));</span><br><span class="line">                wkStock &#x3D; pStock;</span><br><span class="line">            &#125;</span><br><span class="line">            return pStock;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        int getSize()&#123;</span><br><span class="line">            return stocks_.size();</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    private:</span><br><span class="line">        mutable muduo::MutexLock mutex_;</span><br><span class="line">        std::map&lt;string, boost::weak_ptr&lt;Stock&gt; &gt; stocks_;</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>　　这段代码写的太漂亮了,首先是把map中string-shared_ptr映射，修改为string-weak_ptr,这样一来就解决了版本一中Stock不析构的问题。其次<code>boost::weak_ptr&lt;Stock&gt;&amp; wkStock = stocks_[key];</code>,这两句采用了一个<strong>引用</strong>,通过引用让一个wkStock指向stocks_[key],这样处理太棒了,后面尝试将wkStock提升为sp,顺便借此检验是否存在这个股票对象，不存在则创建,不存在的时候<code>wkStock = pStock;</code>,由于是引用相当于直接在map中创建了新的一对映射关系,最后将创建的sp指针返回给用户。<br>　　到这一步已经很不错了，但是还存在一些小问题,用户得到的sp析构后，Stock对象析构，但是stocks_大小似乎不会减少!</p>
+<h2 id="version-3"><a href="#version-3" class="headerlink" title="version 3"></a>version 3</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br></pre></td><td class="code"><pre><span class="line">namespace version3</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">class StockFactory : boost::noncopyable</span><br><span class="line">    &#123;</span><br><span class="line">    public:</span><br><span class="line"></span><br><span class="line">        boost::shared_ptr&lt;Stock&gt; get(const string&amp; key)</span><br><span class="line">        &#123;</span><br><span class="line">            boost::shared_ptr&lt;Stock&gt; pStock;</span><br><span class="line">            muduo::MutexLockGuard lock(mutex_);</span><br><span class="line">            boost::weak_ptr&lt;Stock&gt;&amp; wkStock &#x3D; stocks_[key];</span><br><span class="line">            pStock &#x3D; wkStock.lock();</span><br><span class="line">            if (!pStock)</span><br><span class="line">            &#123;</span><br><span class="line">                pStock.reset(new Stock(key),</span><br><span class="line">                             boost::bind(&amp;StockFactory::deleteStock, this, _1));</span><br><span class="line">                wkStock &#x3D; pStock;&#x2F;&#x2F;更新了map里的stock</span><br><span class="line">            &#125;</span><br><span class="line">            return pStock;</span><br><span class="line">        &#125;</span><br><span class="line">        int getSize()&#123;</span><br><span class="line">            return stocks_.size();</span><br><span class="line">        &#125;</span><br><span class="line">    private:</span><br><span class="line"></span><br><span class="line">        void deleteStock(Stock* stock)</span><br><span class="line">        &#123;</span><br><span class="line">            printf(&quot;deleteStock[%p]\n&quot;, stock);</span><br><span class="line">            if (stock)</span><br><span class="line">            &#123;</span><br><span class="line">                muduo::MutexLockGuard lock(mutex_);</span><br><span class="line">                &#x2F;&#x2F;从map中移除了析构的对象</span><br><span class="line">                stocks_.erase(stock-&gt;key());  &#x2F;&#x2F; This is wrong, see removeStock below for correct implementation.</span><br><span class="line">            &#125;</span><br><span class="line">            delete stock;  &#x2F;&#x2F; sorry, I lied</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        mutable muduo::MutexLock mutex_;</span><br><span class="line">        std::map&lt;string, boost::weak_ptr&lt;Stock&gt; &gt; stocks_;</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>1.由于version3中存在的问题,所以在reset方法中加入了删除器(deleter)。<br>template&lt; class Y, class Deleter &gt;<br>void reset( Y* ptr, Deleter d );<br>2.函数模板<br>template&lt;   class F, class… Args &gt;<br>/<em>unspecified</em>/ bind( F&amp;&amp; f, Args&amp;&amp;… args );<br>当绑定一个成员函数的时候，需要把对象也传进去。<br>　　通过添加了一个deleter,每当Stock析构时候，都会调用删除器<code>stocks_.erase(stock-&gt;key());</code>移除map中的一对关系。仔细考虑一下，一旦用到this指针,就要考虑是否存在线程安全问题,如果StockFactory先于stock析构就会core dump。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">boost::shared_ptr&lt;Stock&gt; s3;</span><br><span class="line">  &#123;  </span><br><span class="line">  version3::StockFactory sf3;</span><br><span class="line">  s3 &#x3D; sf3.get(&quot;stock3&quot;);</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<h2 id="version-4"><a href="#version-4" class="headerlink" title="version 4"></a>version 4</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;* 版本四 *&#x2F;</span><br><span class="line">namespace version4</span><br><span class="line">&#123;</span><br><span class="line"></span><br><span class="line">class StockFactory : public boost::enable_shared_from_this&lt;StockFactory&gt;,</span><br><span class="line">    boost::noncopyable</span><br><span class="line">    &#123;</span><br><span class="line">    public:</span><br><span class="line"></span><br><span class="line">        boost::shared_ptr&lt;Stock&gt; get(const string&amp; key)</span><br><span class="line">        &#123;</span><br><span class="line">            boost::shared_ptr&lt;Stock&gt; pStock;</span><br><span class="line">            muduo::MutexLockGuard lock(mutex_);</span><br><span class="line">            boost::weak_ptr&lt;Stock&gt;&amp; wkStock &#x3D; stocks_[key];</span><br><span class="line">            pStock &#x3D; wkStock.lock();</span><br><span class="line">            if (!pStock)</span><br><span class="line">            &#123;</span><br><span class="line">                &#x2F;&#x2F;此处换用了shared_ptr智能this指针</span><br><span class="line">                pStock.reset(new Stock(key),</span><br><span class="line">                             boost::bind(&amp;StockFactory::deleteStock,</span><br><span class="line">                                         shared_from_this(),</span><br><span class="line">                                         _1));</span><br><span class="line">                wkStock &#x3D; pStock;</span><br><span class="line">            &#125;</span><br><span class="line">            return pStock;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    private:</span><br><span class="line"></span><br><span class="line">        void deleteStock(Stock* stock)</span><br><span class="line">        &#123;</span><br><span class="line">            printf(&quot;deleteStock[%p]\n&quot;, stock);</span><br><span class="line">            if (stock)</span><br><span class="line">            &#123;</span><br><span class="line">                muduo::MutexLockGuard lock(mutex_);</span><br><span class="line">                stocks_.erase(stock-&gt;key());  &#x2F;&#x2F; This is wrong, see removeStock below for correct implementation.</span><br><span class="line">            &#125;</span><br><span class="line">            delete stock;  &#x2F;&#x2F; sorry, I lied</span><br><span class="line">        &#125;</span><br><span class="line">        mutable muduo::MutexLock mutex_;</span><br><span class="line">        std::map&lt;string, boost::weak_ptr&lt;Stock&gt; &gt; stocks_;</span><br><span class="line">    &#125;;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<p>　　1.为了管理对象的声明周期我们还是想到使用shared_ptr,这里需要获得当前对象的shared_ptr对象,只要让StockFactory基类继承enable_shared_from_this<StockFactory>模板基类,在调用shared_from_this方法。<strong>注意</strong>构造函数中是不能调用调用的,因为没有完成构造的时候该对象还没有交由shared_ptr管理。<br>　　2.再看version3的测试代码,StockFactory的生命期被延长了。  </p>
+<h2 id="version-5"><a href="#version-5" class="headerlink" title="version 5"></a>version 5</h2><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line">class StockFactory : public boost::enable_shared_from_this&lt;StockFactory&gt;,</span><br><span class="line">    boost::noncopyable</span><br><span class="line">&#123;</span><br><span class="line">public:</span><br><span class="line">    boost::shared_ptr&lt;Stock&gt; get(const string&amp; key)</span><br><span class="line">    &#123;</span><br><span class="line">        boost::shared_ptr&lt;Stock&gt; pStock;</span><br><span class="line">        muduo::MutexLockGuard lock(mutex_);</span><br><span class="line">        boost::weak_ptr&lt;Stock&gt;&amp; wkStock &#x3D; stocks_[key];</span><br><span class="line">        pStock &#x3D; wkStock.lock();</span><br><span class="line">        if (!pStock)</span><br><span class="line">        &#123;</span><br><span class="line">            pStock.reset(new Stock(key),</span><br><span class="line">                         boost::bind(&amp;StockFactory::weakDeleteCallback,</span><br><span class="line">                                     boost::weak_ptr&lt;StockFactory&gt;(shared_from_this()),</span><br><span class="line">                                     _1));</span><br><span class="line">            wkStock &#x3D; pStock;</span><br><span class="line">        &#125;</span><br><span class="line">        return pStock;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">private:</span><br><span class="line">    &#x2F;&#x2F;弱回调</span><br><span class="line">    static void weakDeleteCallback(const boost::weak_ptr&lt;StockFactory&gt;&amp; wkFactory,</span><br><span class="line">                                   Stock* stock)</span><br><span class="line">    &#123;</span><br><span class="line">        printf(&quot;weakDeleteStock[%p]\n&quot;, stock);</span><br><span class="line">        boost::shared_ptr&lt;StockFactory&gt; factory(wkFactory.lock());&#x2F;&#x2F;尝试提升</span><br><span class="line">        if (factory)</span><br><span class="line">        &#123;</span><br><span class="line">            factory-&gt;removeStock(stock);</span><br><span class="line">        &#125;</span><br><span class="line">        else</span><br><span class="line">        &#123;</span><br><span class="line">            printf(&quot;factory died.\n&quot;);</span><br><span class="line">        &#125;</span><br><span class="line">        delete stock;  &#x2F;&#x2F; sorry, I lied</span><br><span class="line">    &#125;</span><br><span class="line">    void removeStock(Stock* stock)</span><br><span class="line">    &#123;</span><br><span class="line">        if (stock)</span><br><span class="line">        &#123;</span><br><span class="line">            muduo::MutexLockGuard lock(mutex_);</span><br><span class="line">            auto it &#x3D; stocks_.find(stock-&gt;key());</span><br><span class="line">            assert(it !&#x3D; stocks_.end());</span><br><span class="line">            if (it-&gt;second.expired())</span><br><span class="line">            &#123;</span><br><span class="line">                stocks_.erase(stock-&gt;key());</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">private:</span><br><span class="line">    mutable muduo::MutexLock mutex_;</span><br><span class="line">    std::map&lt;string, boost::weak_ptr&lt;Stock&gt; &gt; stocks_;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>　　为了解决version4中对象声明周期延长的问题,这里采用了弱回调技术。弱回调技术是这样一个语境，如果对象还存在就执行某个方法,否则不执行。bind的时候说回调函数只有一个参数,因为成员函数本来就会隐式的传入一个this指针，在这里传入一个weak_prt的this指针。至此，已经基本解决了StockFactory中的各种问题。</p>
+<h1 id="感想"><a href="#感想" class="headerlink" title="感想"></a>感想</h1><p>　　看完这章之后惊叹于muduo考虑的周全,多线程中各种可能的问题都解决了，这样的程序一定是稳定的,中间大量运用shared_ptr、weak_ptr来管理内存,值得好好学习!</p>
+
+        
+    </section>
+</article>
+
+
+
+<a id="pagenext" href="/2020/03/20/muduo-chp02-Singleton%E6%A8%A1%E5%BC%8F/" class="article-next" title="muduo_chp02_Singleton模式"><i class="icon-arrow-right"></i></a>
+
+
+
+
+<div class="comments">
+    <div id="comments"></div>
+    <script src="https://unpkg.com/gitalk/dist/gitalk.min.js"></script>
+    <script>
+    new Gitalk({
+        clientID: `25e6aa8b4eb43e15a16f`,
+        clientSecret: 'e76d189867d41b973dfe88f9da655255e439eeb0',
+        repo: `BlogComments`,
+        owner: `g1050`,
+        admin: [`g1050`],
+        id: location.pathname,
+    }).render('comments');
+    </script>
+</div>
+
+
+
+            </div>
+        </div>
+        <footer class="footer">
+    Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>, Theme by <a href="https://github.com/sanonz/hexo-theme-concise" target="_blank">Concise</a>
+
+    
+    <script>
+        var _hmt = _hmt || [];
+        (function () {
+            var hm = document.createElement("script");
+            hm.src = "https://hm.baidu.com/hm.js?d37ac32f83de545ec697f5b49514e9d5";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(hm, s);
+        })();
+    </script>
+    
+</footer>
+
+    </main>
+
+    <script type="text/javascript" src="https://cdn.bootcss.com/jquery/1.9.0/jquery.min.js"></script>
+    <script type="text/javascript">
+    $(function() {
+        var nodes = {
+            nav: $('#nav'),
+            aside: $('#aside'),
+            asideInner: $('#aside-inner'),
+            navInner: $('#nav-inner')
+        };
+
+        var doing = false;
+        nodes.asideInner.on('webkitAnimationEnd mozAnimationEnd oAnimationEnd oanimationend animationend', function() {
+            if (nodes.aside.hasClass('mobile-open')) {
+                nodes.aside.removeClass('mobile-open');
+            } else {
+                nodes.aside.removeClass('mobile-close panel-show');
+            }
+            doing = false;
+        });
+        $('#open-panel, #aside-mask').on('click', function() {
+            if (doing) {
+                return;
+            }
+
+            if (nodes.aside.hasClass('panel-show')) {
+                nodes.aside.addClass('mobile-close');
+            } else {
+                nodes.aside.addClass('mobile-open panel-show');
+            }
+        });
+        $('#open-menus').on('click', function() {
+            nodes.navInner.slideToggle();
+        });
+
+        if (window.innerWidth <= 960) {
+            setTimeout(function() {
+                nodes.navInner.slideUp();
+            }, 3000);
+        }
+    });
+    </script>
+    
+        
+<script src="/js/scrollspy.min.js"></script>
+
+        <script type="text/javascript">
+        $(document.body).scrollspy({target: '#aside-inner'});
+
+        $(window).on('resize', function() {
+            var hw = $('#header').width();
+            var ww = $('#wrapper').width();
+            var space = ($(this).width() - hw - ww) / 2 / 2;
+
+            var pageprev = $('#pageprev');
+            var pagenext = $('#pagenext');
+            var avg = (pageprev.width() + pagenext.width()) / 2
+
+            if(space > avg) {
+                var len = space - avg / 2;
+                var styles = {position: 'fixed', top: '50%', marginTop: - (pageprev.width() + pagenext.width()) / 4}
+                pageprev.css($.extend({left: hw + len}, styles));
+                pagenext.css($.extend({right: len}, styles));
+            } else {
+                pageprev.removeAttr('style');
+                pagenext.removeAttr('style');
+            }
+        }).trigger('resize');
+        </script>
+    
+
+</body>
+</html>
