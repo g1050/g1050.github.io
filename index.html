@@ -151,6 +151,50 @@
     <header class="article-header">
         
         <h1 itemprop="name">
+            <a href="/2020/03/24/muduo-chp02-%E5%86%99%E6%97%B6%E5%A4%8D%E5%88%B6/">muduo_chp02_写时复制</a>
+        </h1>
+        
+        <div class="article-meta clearfix">
+            <a class="article-date" href="http://yoursite.com/index.html">
+    
+    <i class="icon-calendar"></i>
+    
+    <time datetime="2020-03-24T13:04:00.000Z" itemprop="datePublished">2020-03-24</time>
+</a>
+
+            
+<div class="article-tag-list">
+    <i class="icon-tag"></i>
+    <a class="article-tag-link" href="/tags/muduo/" rel="tag">muduo</a>
+</div>
+
+
+        </div>
+    </header>
+    
+    <section class="article-body markdown-body">
+        
+        <blockquote>
+<p>　　copy on write技术,两个线程同时获取一个资源，没必要每个线程拷贝一份，他们可以共享数据。既然共享，就要考虑并发读写的情况,并发读是没有问题的,但是要保证读的时候其他线程不写该数据。并发写尽量不要影响其他读的线程,所以就有了写时复制。</p>
+</blockquote>
+        
+        <p class="article-more-link">
+            <a href="/2020/03/24/muduo-chp02-%E5%86%99%E6%97%B6%E5%A4%8D%E5%88%B6/#more">
+                <span class="vm">阅读更多</span>
+                <i class="icon-arrow-double-right vm"></i>    
+            </a>
+        </p>
+        
+        
+    </section>
+</article>
+
+
+    <article class="article" itemscope itemprop="blogPost">
+    
+    <header class="article-header">
+        
+        <h1 itemprop="name">
             <a href="/2020/03/22/muduo-chp01-Object-pool/">muduo_chp01_Object pool</a>
         </h1>
         
@@ -174,7 +218,9 @@
     
     <section class="article-body markdown-body">
         
-        <hr>
+        <blockquote>
+<p>对象池</p>
+</blockquote>
         
         <p class="article-more-link">
             <a href="/2020/03/22/muduo-chp01-Object-pool/#more">
@@ -216,7 +262,9 @@
     
     <section class="article-body markdown-body">
         
-        <hr>
+        <blockquote>
+<p>单例模式</p>
+</blockquote>
         
         <p class="article-more-link">
             <a href="/2020/03/20/muduo-chp02-Singleton%E6%A8%A1%E5%BC%8F/#more">
@@ -258,7 +306,7 @@
     
     <section class="article-body markdown-body">
         
-        <hr>
+        <p>观察者模式</p>
         
         <p class="article-more-link">
             <a href="/2020/03/19/muduo-chp01-observer%E6%A8%A1%E5%BC%8F/#more">
