@@ -7,7 +7,7 @@
 
     
 
-    <title>muduo_chp04_Thread类杂记 | 高星坤的博客</title>
+    <title>muduo_chp04_线程的两个状态 | 高星坤的博客</title>
     <meta name="author" content="gxk" />
     <meta name="keywords" content="" />
     <meta name="description" content="线程有joinable和detached两个状态joinable 和 detached　　一个线程默认有两种状态joinable和detached,创建的线程默认是joinable的。joinable意即可结合的,创建的线程就需要其他线程来回收其资源,需要注意的是即使一个线程结束了,如果父线程不主动回收他的资源它的资源仍然不会回收。detached意思是分离的,这样的线程资源是由系统回收的。　　综上所述,线程有两种回收资源的方式,一种是父线程调用pthread_join主动等待回收..." />
@@ -107,7 +107,7 @@
     <header class="article-header">
         
         <h1 itemprop="name">
-            muduo_chp04_Thread类杂记
+            muduo_chp04_线程的两个状态
         </h1>
         
         <div class="article-meta clearfix">
